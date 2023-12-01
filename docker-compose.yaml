@@ -1,0 +1,15 @@
+services:
+  ydb:
+    image: cr.yandex/yc/yandex-docker-local-ydb:23.2
+    hostname: localhost
+    privileged: true
+    environment:
+      MON_PORT: 8765
+      GRPC_PORT: 2135
+      GRPC_TLS_PORT: 2136
+      YDB_KQP_ENABLE_IMMEDIATE_EFFECTS: true
+      YDB_YQL_SYNTAX_VERSION: 1
+    ports:
+      - "2135:2135"
+      - "2136:2136"
+      - "8765:8765"

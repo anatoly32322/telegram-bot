@@ -1,9 +1,10 @@
 import json
 import logging
 import random
+from ydb_client import ydb_client
 
-from dbHandler import DBHandler
-from convDBHandler import ConvDBHandler
+from db_handler import DBHandler
+from conv_db_handler import ConvDBHandler
 
 try:
     from telegram import __version_info__
@@ -27,7 +28,7 @@ logger = logging.getLogger(__name__)
 theory = dict()
 topic_to_id = dict()
 questions = dict()
-MENU, THEORY, QUIZ = range(3)
+MENU, THEORY, QUIZ, TEST = range(4)
 options = 'ABCD'
 db_handler = DBHandler('results.db')
 conv_db_handler = ConvDBHandler('conv.db')
@@ -233,6 +234,22 @@ async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     await update.message.reply_text('Use /start to start bot')
 
 
+async def test_produce(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    db = await ydb_client.connect()
+    writer = await ydb_client.producer(db)
+    await writer.write(update.message.text)
+    await writer.close()
+
+
+async def test_consume(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    db = await ydb_client.connect()
+    # await ydb_client.print_message_content(reader)
+    reader = await ydb_client.consumer(db)
+    message = await reader.receive_message()
+    print(message)
+    await reader.close()
+
+
 def input_json(path):
     """Parse json file"""
     with open(path, 'r') as f:
@@ -248,7 +265,10 @@ def keyboard_separation(keyboard: list, size: int, quantity: int):
     return [[keyboard[i] for i in range(quantity * j, min(size, quantity * (j + 1)))]
             for j in range(size // quantity + (1 if size % quantity != 0 else 0))]
 
+
 path_ = None
+
+
 def start_bot(token: str, path: str) -> None:
     path_ = path
     """Run bot."""
@@ -265,6 +285,10 @@ def start_bot(token: str, path: str) -> None:
             #     MessageHandler(filters.Regex('^(Выход)$'), cancel),
             #     CommandHandler('start', start)
             # ],
+            TEST: [
+                CommandHandler('test_consume', test_consume),
+                CommandHandler('test_produce', test_produce)
+            ],
             THEORY: [
                 CommandHandler('choose_theory', choose_theory),
                 MessageHandler(filters.Regex('^(К темам)$'), choose_theory),
